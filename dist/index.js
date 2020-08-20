@@ -280,12 +280,14 @@ async function main() {
     .replace(/\\n/g, "\n");
 
   try {
-    const { installations, popularRepositories } = await getAppStats({
+    const { installations, repositories, popularRepositories } = await getAppStats({
       id,
       privateKey,
     });
     core.setOutput("installations", installations);
+    core.setOutput("repositories", repositories);
     core.setOutput("popular_repositories", JSON.stringify(popularRepositories));
+    core.setOutput("stats", JSON.stringify({ installations, repositories, popular: popularRepositories }));
     console.log("done.");
   } catch (error) {
     core.error(error);
@@ -9601,6 +9603,7 @@ async function getAppStats({ id, privateKey }) {
     );
 
     const accounts = [];
+    let installedRepositories = 0;
     let suspendedInstallations = 0;
     for (const installation of installations) {
       if (installation.suspended) {
@@ -9637,6 +9640,7 @@ async function getAppStats({ id, privateKey }) {
           return stars + repository.stars;
         }, 0);
 
+      installedRepositories += repositories.length;
       accounts.push({ ...installation, stars });
     }
 
@@ -9644,6 +9648,7 @@ async function getAppStats({ id, privateKey }) {
     return {
       installations: accounts.length + suspendedInstallations,
       suspendedInstallations,
+      repositories: installedRepositories,
       popularRepositories: accounts
         .sort((a, b) => b.stars - a.stars)
         .slice(0, 10)
