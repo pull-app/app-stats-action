@@ -11,13 +11,14 @@ async function main() {
     .replace(/\\n/g, "\n");
 
   try {
-    const { installations, popularRepositories } = await getAppStats({
+    const { installations, repositories, popularRepositories } = await getAppStats({
       id,
       privateKey,
     });
     core.setOutput("installations", installations);
+    core.setOutput("repositories", repositories);
     core.setOutput("popular_repositories", JSON.stringify(popularRepositories));
-    core.setOutput("stats", JSON.stringify({ installations, popular: popularRepositories }));
+    core.setOutput("stats", JSON.stringify({ installations, repositories, popular: popularRepositories }));
     console.log("done.");
   } catch (error) {
     core.error(error);
