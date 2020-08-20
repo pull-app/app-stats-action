@@ -1,7 +1,7 @@
 version: "1"
 rules:
   - base: main
-    upstream: gr2m:master
+    upstream: gr2m:main
     mergeMethod: hardreset
     mergeUnstable: true
   - base: latest
