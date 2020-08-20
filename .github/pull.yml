@@ -1,0 +1,11 @@
+version: "1"
+rules:
+  - base: main
+    upstream: gr2m:master
+    mergeMethod: hardreset
+    mergeUnstable: true
+  - base: latest
+    upstream: main
+    conflictReviewers:
+      - wei
+    mergeMethod: merge
