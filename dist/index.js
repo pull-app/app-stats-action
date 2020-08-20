@@ -280,13 +280,19 @@ async function main() {
     .replace(/\\n/g, "\n");
 
   try {
-    const { installations, repositories, popularRepositories } = await getAppStats({
+    const {
+      installations,
+      repositories,
+      popularRepositories,
+      suspendedInstallations,
+    } = await getAppStats({
       id,
       privateKey,
     });
     core.setOutput("installations", installations);
     core.setOutput("repositories", repositories);
     core.setOutput("popular_repositories", JSON.stringify(popularRepositories));
+    core.setOutput("suspended_installations", suspendedInstallations);
     core.setOutput("stats", JSON.stringify({ installations, repositories, popular: popularRepositories }));
     console.log("done.");
   } catch (error) {
@@ -9642,11 +9648,13 @@ async function getAppStats({ id, privateKey }) {
 
       installedRepositories += repositories.length;
       accounts.push({ ...installation, stars });
+      installedRepositories += repositories.length;
     }
 
     console.log("");
     return {
       installations: accounts.length + suspendedInstallations,
+      repositories: installedRepositories,
       suspendedInstallations,
       repositories: installedRepositories,
       popularRepositories: accounts
