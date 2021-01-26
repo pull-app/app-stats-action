@@ -257,10 +257,72 @@ bufferEq.restore = function() {
 
 /***/ }),
 
+/***/ 82:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+// We use any as a valid input type
+/* eslint-disable @typescript-eslint/no-explicit-any */
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * Sanitizes an input into a string so it can be passed into issueCommand safely
+ * @param input input to sanitize into a string
+ */
+function toCommandValue(input) {
+    if (input === null || input === undefined) {
+        return '';
+    }
+    else if (typeof input === 'string' || input instanceof String) {
+        return input;
+    }
+    return JSON.stringify(input);
+}
+exports.toCommandValue = toCommandValue;
+//# sourceMappingURL=utils.js.map
+
+/***/ }),
+
 /***/ 87:
 /***/ (function(module) {
 
 module.exports = require("os");
+
+/***/ }),
+
+/***/ 102:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+// For internal use, subject to change.
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+// We use any as a valid input type
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const fs = __importStar(__webpack_require__(747));
+const os = __importStar(__webpack_require__(87));
+const utils_1 = __webpack_require__(82);
+function issueCommand(command, message) {
+    const filePath = process.env[`GITHUB_${command}`];
+    if (!filePath) {
+        throw new Error(`Unable to find environment variable for file command ${command}`);
+    }
+    if (!fs.existsSync(filePath)) {
+        throw new Error(`Missing file at path: ${filePath}`);
+    }
+    fs.appendFileSync(filePath, `${utils_1.toCommandValue(message)}${os.EOL}`, {
+        encoding: 'utf8'
+    });
+}
+exports.issueCommand = issueCommand;
+//# sourceMappingURL=file-command.js.map
 
 /***/ }),
 
@@ -274,7 +336,7 @@ const getAppStats = __webpack_require__(766);
 main();
 
 async function main() {
-  const id = core.getInput("id", { required: true });
+  const appId = core.getInput("id", { required: true });
   const privateKey = core
     .getInput("private_key", { required: true })
     .replace(/\\n/g, "\n");
@@ -286,7 +348,7 @@ async function main() {
       popularRepositories,
       suspendedInstallations,
     } = await getAppStats({
-      id,
+      appId,
       privateKey,
     });
     core.setOutput("installations", installations);
@@ -1026,14 +1088,20 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 
 var universalUserAgent = __webpack_require__(796);
 var request = __webpack_require__(753);
+var deprecation = __webpack_require__(692);
 var universalGithubAppJwt = __webpack_require__(292);
 var LRU = _interopDefault(__webpack_require__(702));
 var requestError = __webpack_require__(463);
 
-async function getAppAuthentication(id, privateKey) {
+async function getAppAuthentication({
+  appId,
+  privateKey,
+  timeDifference
+}) {
   const appAuthentication = await universalGithubAppJwt.githubAppJwt({
-    id,
-    privateKey
+    id: +appId,
+    privateKey,
+    now: timeDifference && Math.floor(Date.now() / 1000) + timeDifference
   });
   return {
     type: "app",
@@ -1041,6 +1109,91 @@ async function getAppAuthentication(id, privateKey) {
     appId: appAuthentication.appId,
     expiresAt: new Date(appAuthentication.expiration * 1000).toISOString()
   };
+}
+
+function _defineProperty(obj, key, value) {
+  if (key in obj) {
+    Object.defineProperty(obj, key, {
+      value: value,
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+  } else {
+    obj[key] = value;
+  }
+
+  return obj;
+}
+
+function ownKeys(object, enumerableOnly) {
+  var keys = Object.keys(object);
+
+  if (Object.getOwnPropertySymbols) {
+    var symbols = Object.getOwnPropertySymbols(object);
+    if (enumerableOnly) symbols = symbols.filter(function (sym) {
+      return Object.getOwnPropertyDescriptor(object, sym).enumerable;
+    });
+    keys.push.apply(keys, symbols);
+  }
+
+  return keys;
+}
+
+function _objectSpread2(target) {
+  for (var i = 1; i < arguments.length; i++) {
+    var source = arguments[i] != null ? arguments[i] : {};
+
+    if (i % 2) {
+      ownKeys(Object(source), true).forEach(function (key) {
+        _defineProperty(target, key, source[key]);
+      });
+    } else if (Object.getOwnPropertyDescriptors) {
+      Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
+    } else {
+      ownKeys(Object(source)).forEach(function (key) {
+        Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
+      });
+    }
+  }
+
+  return target;
+}
+
+function _objectWithoutPropertiesLoose(source, excluded) {
+  if (source == null) return {};
+  var target = {};
+  var sourceKeys = Object.keys(source);
+  var key, i;
+
+  for (i = 0; i < sourceKeys.length; i++) {
+    key = sourceKeys[i];
+    if (excluded.indexOf(key) >= 0) continue;
+    target[key] = source[key];
+  }
+
+  return target;
+}
+
+function _objectWithoutProperties(source, excluded) {
+  if (source == null) return {};
+
+  var target = _objectWithoutPropertiesLoose(source, excluded);
+
+  var key, i;
+
+  if (Object.getOwnPropertySymbols) {
+    var sourceSymbolKeys = Object.getOwnPropertySymbols(source);
+
+    for (i = 0; i < sourceSymbolKeys.length; i++) {
+      key = sourceSymbolKeys[i];
+      if (excluded.indexOf(key) >= 0) continue;
+      if (!Object.prototype.propertyIsEnumerable.call(source, key)) continue;
+      target[key] = source[key];
+    }
+  }
+
+  return target;
 }
 
 // https://github.com/isaacs/node-lru-cache#readme
@@ -1124,10 +1277,21 @@ function toTokenAuthentication({
 }
 
 async function getInstallationAuthentication(state, options, customRequest) {
-  const installationId = options.installationId || state.installationId;
+  const installationId = Number(options.installationId || state.installationId);
 
-  if (typeof installationId !== "number") {
+  if (!installationId) {
     throw new Error("[@octokit/auth-app] installationId option is required for installation authentication.");
+  }
+
+  if (options.factory) {
+    const {
+      type,
+      factory
+    } = options,
+          factoryAuthOptions = _objectWithoutProperties(options, ["type", "factory"]); // @ts-ignore if `options.factory` is set, the return type for `auth()` should be `Promise<ReturnType<options.factory>>`
+
+
+    return factory(Object.assign({}, state, factoryAuthOptions));
   }
 
   const optionsWithInstallationTokenFromState = Object.assign({
@@ -1160,7 +1324,7 @@ async function getInstallationAuthentication(state, options, customRequest) {
     }
   }
 
-  const appAuthentication = await getAppAuthentication(state.id, state.privateKey);
+  const appAuthentication = await getAppAuthentication(state);
   const request = customRequest || state.request;
   const {
     data: {
@@ -1173,7 +1337,7 @@ async function getInstallationAuthentication(state, options, customRequest) {
       // @ts-ignore
       single_file: singleFileName
     }
-  } = await request("POST /app/installations/:installation_id/access_tokens", {
+  } = await request("POST /app/installations/{installation_id}/access_tokens", {
     installation_id: installationId,
     repository_ids: options.repositoryIds,
     permissions: options.permissions,
@@ -1247,7 +1411,7 @@ async function getOAuthAuthentication(state, options, customRequest) {
 
 async function auth(state, options) {
   if (options.type === "app") {
-    return getAppAuthentication(state.id, state.privateKey);
+    return getAppAuthentication(state);
   }
 
   if (options.type === "installation") {
@@ -1257,17 +1421,17 @@ async function auth(state, options) {
   return getOAuthAuthentication(state, options);
 }
 
-const PATHS = ["/app", "/app/installations", "/app/installations/:installation_id", "/app/installations/:installation_id/access_tokens", "/marketplace_listing/accounts/:account_id", "/marketplace_listing/plan", "/marketplace_listing/plans/:plan_id/accounts", "/marketplace_listing/stubbed/accounts/:account_id", "/marketplace_listing/stubbed/plan", "/marketplace_listing/stubbed/plans/:plan_id/accounts", "/orgs/:org/installation", "/repos/:owner/:repo/installation", "/users/:username/installation"]; // CREDIT: Simon Grondin (https://github.com/SGrondin)
+const PATHS = ["/app", "/app/hook/config", "/app/installations", "/app/installations/{installation_id}", "/app/installations/{installation_id}/access_tokens", "/app/installations/{installation_id}/suspended", "/marketplace_listing/accounts/{account_id}", "/marketplace_listing/plan", "/marketplace_listing/plans", "/marketplace_listing/plans/{plan_id}/accounts", "/marketplace_listing/stubbed/accounts/{account_id}", "/marketplace_listing/stubbed/plan", "/marketplace_listing/stubbed/plans", "/marketplace_listing/stubbed/plans/{plan_id}/accounts", "/orgs/{org}/installation", "/repos/{owner}/{repo}/installation", "/users/{username}/installation"]; // CREDIT: Simon Grondin (https://github.com/SGrondin)
 // https://github.com/octokit/plugin-throttling.js/blob/45c5d7f13b8af448a9dbca468d9c9150a73b3948/lib/route-matcher.js
 
 function routeMatcher(paths) {
   // EXAMPLE. For the following paths:
 
   /* [
-      "/orgs/:org/invitations",
-      "/repos/:owner/:repo/collaborators/:username"
+      "/orgs/{org}/invitations",
+      "/repos/{owner}/{repo}/collaborators/{username}"
   ] */
-  const regexes = paths.map(p => p.split("/").map(c => c.startsWith(":") ? "(?:.+?)" : c).join("/")); // 'regexes' would contain:
+  const regexes = paths.map(p => p.split("/").map(c => c.startsWith("{") ? "(?:.+?)" : c).join("/")); // 'regexes' would contain:
 
   /* [
       '/orgs/(?:.+?)/invitations',
@@ -1290,16 +1454,50 @@ function requiresAppAuth(url) {
   return !!url && REGEX.test(url);
 }
 
-const SIXTY_SECONDS_IN_MS = 60 * 1000;
+const FIVE_SECONDS_IN_MS = 5 * 1000;
+
+function isNotTimeSkewError(error) {
+  return !(error.message.match(/'Expiration time' claim \('exp'\) must be a numeric value representing the future time at which the assertion expires/) || error.message.match(/'Issued at' claim \('iat'\) must be an Integer representing the time that the assertion was issued/));
+}
+
 async function hook(state, request, route, parameters) {
   let endpoint = request.endpoint.merge(route, parameters);
 
   if (requiresAppAuth(endpoint.url.replace(request.endpoint.DEFAULTS.baseUrl, ""))) {
     const {
       token
-    } = await getAppAuthentication(state.id, state.privateKey);
+    } = await getAppAuthentication(state);
     endpoint.headers.authorization = `bearer ${token}`;
-    return request(endpoint);
+    let response;
+
+    try {
+      response = await request(endpoint);
+    } catch (error) {
+      // If there's an issue with the expiration, regenerate the token and try again.
+      // Otherwise rethrow the error for upstream handling.
+      if (isNotTimeSkewError(error)) {
+        throw error;
+      } // If the date header is missing, we can't correct the system time skew.
+      // Throw the error to be handled upstream.
+
+
+      if (typeof error.headers.date === "undefined") {
+        throw error;
+      }
+
+      const diff = Math.floor((Date.parse(error.headers.date) - Date.parse(new Date().toString())) / 1000);
+      state.log.warn(error.message);
+      state.log.warn(`[@octokit/auth-app] GitHub API time and system time are different by ${diff} seconds. Retrying request with the difference accounted for.`);
+      const {
+        token
+      } = await getAppAuthentication(_objectSpread2(_objectSpread2({}, state), {}, {
+        timeDifference: diff
+      }));
+      endpoint.headers.authorization = `bearer ${token}`;
+      return request(endpoint);
+    }
+
+    return response;
   }
 
   const {
@@ -1307,17 +1505,17 @@ async function hook(state, request, route, parameters) {
     createdAt
   } = await getInstallationAuthentication(state, {}, request);
   endpoint.headers.authorization = `token ${token}`;
-  return sendRequestWithRetries(request, endpoint, createdAt);
+  return sendRequestWithRetries(state, request, endpoint, createdAt);
 }
 /**
  * Newly created tokens might not be accessible immediately after creation.
  * In case of a 401 response, we retry with an exponential delay until more
- * than one minute passes since the creation of the token.
+ * than five seconds pass since the creation of the token.
  *
  * @see https://github.com/octokit/auth-app.js/issues/65
  */
 
-async function sendRequestWithRetries(request, options, createdAt, retries = 0) {
+async function sendRequestWithRetries(state, request, options, createdAt, retries = 0) {
   const timeSinceTokenCreationInMs = +new Date() - +new Date(createdAt);
 
   try {
@@ -1327,21 +1525,33 @@ async function sendRequestWithRetries(request, options, createdAt, retries = 0) 
       throw error;
     }
 
-    if (timeSinceTokenCreationInMs >= SIXTY_SECONDS_IN_MS) {
+    if (timeSinceTokenCreationInMs >= FIVE_SECONDS_IN_MS) {
+      if (retries > 0) {
+        error.message = `After ${retries} retries within ${timeSinceTokenCreationInMs / 1000}s of creating the installation access token, the response remains 401. At this point, the cause may be an authentication problem or a system outage. Please check https://www.githubstatus.com for status information`;
+      }
+
       throw error;
     }
 
     ++retries;
-    const awaitTime = retries * retries * 1000;
-    console.warn(`[@octokit/auth-app] Retrying after 401 response to account for token replication delay (retry: ${retries}, wait: ${awaitTime}ms)`);
+    const awaitTime = retries * 1000;
+    state.log.warn(`[@octokit/auth-app] Retrying after 401 response to account for token replication delay (retry: ${retries}, wait: ${awaitTime / 1000}s)`);
     await new Promise(resolve => setTimeout(resolve, awaitTime));
-    return sendRequestWithRetries(request, options, createdAt, retries);
+    return sendRequestWithRetries(state, request, options, createdAt, retries);
   }
 }
 
-const VERSION = "2.4.14";
+const VERSION = "2.10.6";
 
 const createAppAuth = function createAppAuth(options) {
+  const log = Object.assign({
+    warn: console.warn.bind(console)
+  }, options.log);
+
+  if ("id" in options) {
+    log.warn(new deprecation.Deprecation('[@octokit/auth-app] "createAppAuth({ id })" is deprecated, use "createAppAuth({ appId })" instead'));
+  }
+
   const state = Object.assign({
     request: request.request.defaults({
       headers: {
@@ -1349,7 +1559,13 @@ const createAppAuth = function createAppAuth(options) {
       }
     }),
     cache: getCache()
-  }, options);
+  }, options, {
+    appId: Number("appId" in options ? options.appId : options.id)
+  }, options.installationId ? {
+    installationId: Number(options.installationId)
+  } : {}, {
+    log
+  });
   return Object.assign(auth.bind(null, state), {
     hook: hook.bind(null, state)
   });
@@ -2874,17 +3090,18 @@ async function getToken({
 
 async function githubAppJwt({
   id,
-  privateKey
+  privateKey,
+  now = Math.floor(Date.now() / 1000)
 }) {
   // When creating a JSON Web Token, it sets the "issued at time" (iat) to 30s
   // in the past as we have seen people running situations where the GitHub API
   // claimed the iat would be in future. It turned out the clocks on the
   // different machine were not in sync.
-  const now = Math.floor(Date.now() / 1000) - 30;
-  const expiration = now + 60 * 10; // JWT expiration time (10 minute maximum)
+  const nowWithSafetyMargin = now - 30;
+  const expiration = nowWithSafetyMargin + 60 * 10; // JWT expiration time (10 minute maximum)
 
   const payload = {
-    iat: now,
+    iat: nowWithSafetyMargin,
     exp: expiration,
     iss: id
   };
@@ -3022,7 +3239,7 @@ module.exports = isString;
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-const VERSION = "2.3.0";
+const VERSION = "2.8.4";
 
 /**
  * Some “list” response that can be paginated have a different response structure
@@ -3075,26 +3292,23 @@ function iterator(octokit, route, parameters) {
   let url = options.url;
   return {
     [Symbol.asyncIterator]: () => ({
-      next() {
-        if (!url) {
-          return Promise.resolve({
-            done: true
-          });
-        }
-
-        return requestMethod({
+      async next() {
+        if (!url) return {
+          done: true
+        };
+        const response = await requestMethod({
           method,
           url,
           headers
-        }).then(normalizePaginatedListResponse).then(response => {
-          // `response.headers.link` format:
-          // '<https://api.github.com/users/aseemk/followers?page=2>; rel="next", <https://api.github.com/users/aseemk/followers?page=2>; rel="last"'
-          // sets `url` to undefined if "next" URL is not present or `link` header is not set
-          url = ((response.headers.link || "").match(/<([^>]+)>;\s*rel="next"/) || [])[1];
-          return {
-            value: response
-          };
         });
+        const normalizedResponse = normalizePaginatedListResponse(response); // `response.headers.link` format:
+        // '<https://api.github.com/users/aseemk/followers?page=2>; rel="next", <https://api.github.com/users/aseemk/followers?page=2>; rel="last"'
+        // sets `url` to undefined if "next" URL is not present or `link` header is not set
+
+        url = ((normalizedResponse.headers.link || "").match(/<([^>]+)>;\s*rel="next"/) || [])[1];
+        return {
+          value: normalizedResponse
+        };
       }
 
     })
@@ -3132,6 +3346,10 @@ function gather(octokit, results, iterator, mapFn) {
   });
 }
 
+const composePaginateRest = Object.assign(paginate, {
+  iterator
+});
+
 /**
  * @param octokit Octokit instance
  * @param options Options passed to Octokit constructor
@@ -3146,6 +3364,7 @@ function paginateRest(octokit) {
 }
 paginateRest.VERSION = VERSION;
 
+exports.composePaginateRest = composePaginateRest;
 exports.paginateRest = paginateRest;
 //# sourceMappingURL=index.js.map
 
@@ -4940,6 +5159,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const os = __importStar(__webpack_require__(87));
+const utils_1 = __webpack_require__(82);
 /**
  * Commands
  *
@@ -4993,28 +5213,14 @@ class Command {
         return cmdStr;
     }
 }
-/**
- * Sanitizes an input into a string so it can be passed into issueCommand safely
- * @param input input to sanitize into a string
- */
-function toCommandValue(input) {
-    if (input === null || input === undefined) {
-        return '';
-    }
-    else if (typeof input === 'string' || input instanceof String) {
-        return input;
-    }
-    return JSON.stringify(input);
-}
-exports.toCommandValue = toCommandValue;
 function escapeData(s) {
-    return toCommandValue(s)
+    return utils_1.toCommandValue(s)
         .replace(/%/g, '%25')
         .replace(/\r/g, '%0D')
         .replace(/\n/g, '%0A');
 }
 function escapeProperty(s) {
-    return toCommandValue(s)
+    return utils_1.toCommandValue(s)
         .replace(/%/g, '%25')
         .replace(/\r/g, '%0D')
         .replace(/\n/g, '%0A')
@@ -5054,56 +5260,43 @@ var request = __webpack_require__(753);
 var graphql = __webpack_require__(898);
 var authToken = __webpack_require__(813);
 
-function _defineProperty(obj, key, value) {
-  if (key in obj) {
-    Object.defineProperty(obj, key, {
-      value: value,
-      enumerable: true,
-      configurable: true,
-      writable: true
-    });
-  } else {
-    obj[key] = value;
+function _objectWithoutPropertiesLoose(source, excluded) {
+  if (source == null) return {};
+  var target = {};
+  var sourceKeys = Object.keys(source);
+  var key, i;
+
+  for (i = 0; i < sourceKeys.length; i++) {
+    key = sourceKeys[i];
+    if (excluded.indexOf(key) >= 0) continue;
+    target[key] = source[key];
   }
 
-  return obj;
+  return target;
 }
 
-function ownKeys(object, enumerableOnly) {
-  var keys = Object.keys(object);
+function _objectWithoutProperties(source, excluded) {
+  if (source == null) return {};
+
+  var target = _objectWithoutPropertiesLoose(source, excluded);
+
+  var key, i;
 
   if (Object.getOwnPropertySymbols) {
-    var symbols = Object.getOwnPropertySymbols(object);
-    if (enumerableOnly) symbols = symbols.filter(function (sym) {
-      return Object.getOwnPropertyDescriptor(object, sym).enumerable;
-    });
-    keys.push.apply(keys, symbols);
-  }
+    var sourceSymbolKeys = Object.getOwnPropertySymbols(source);
 
-  return keys;
-}
-
-function _objectSpread2(target) {
-  for (var i = 1; i < arguments.length; i++) {
-    var source = arguments[i] != null ? arguments[i] : {};
-
-    if (i % 2) {
-      ownKeys(Object(source), true).forEach(function (key) {
-        _defineProperty(target, key, source[key]);
-      });
-    } else if (Object.getOwnPropertyDescriptors) {
-      Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
-    } else {
-      ownKeys(Object(source)).forEach(function (key) {
-        Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
-      });
+    for (i = 0; i < sourceSymbolKeys.length; i++) {
+      key = sourceSymbolKeys[i];
+      if (excluded.indexOf(key) >= 0) continue;
+      if (!Object.prototype.propertyIsEnumerable.call(source, key)) continue;
+      target[key] = source[key];
     }
   }
 
   return target;
 }
 
-const VERSION = "3.1.2";
+const VERSION = "3.2.5";
 
 class Octokit {
   constructor(options = {}) {
@@ -5135,9 +5328,7 @@ class Octokit {
     }
 
     this.request = request.request.defaults(requestDefaults);
-    this.graphql = graphql.withCustomRequest(this.request).defaults(_objectSpread2(_objectSpread2({}, requestDefaults), {}, {
-      baseUrl: requestDefaults.baseUrl.replace(/\/api\/v3$/, "/api")
-    }));
+    this.graphql = graphql.withCustomRequest(this.request).defaults(requestDefaults);
     this.log = Object.assign({
       debug: () => {},
       info: () => {},
@@ -5145,7 +5336,7 @@ class Octokit {
       error: console.error.bind(console)
     }, options.log);
     this.hook = hook; // (1) If neither `options.authStrategy` nor `options.auth` are set, the `octokit` instance
-    //     is unauthenticated. The `this.auth()` method is a no-op and no request hook is registred.
+    //     is unauthenticated. The `this.auth()` method is a no-op and no request hook is registered.
     // (2) If only `options.auth` is set, use the default token authentication strategy.
     // (3) If `options.authStrategy` is set then use it and pass in `options.auth`. Always pass own request as many strategies accept a custom request instance.
     // TODO: type `options.auth` based on `options.authStrategy`.
@@ -5164,8 +5355,21 @@ class Octokit {
         this.auth = auth;
       }
     } else {
-      const auth = options.authStrategy(Object.assign({
-        request: this.request
+      const {
+        authStrategy
+      } = options,
+            otherOptions = _objectWithoutProperties(options, ["authStrategy"]);
+
+      const auth = authStrategy(Object.assign({
+        request: this.request,
+        log: this.log,
+        // we pass the current octokit instance as well as its constructor options
+        // to allow for authentication strategies that return a new octokit instance
+        // that shares the same internal state as the current one. The original
+        // requirement for this was the "event-octokit" authentication strategy
+        // of https://github.com/probot/octokit-auth-probot.
+        octokit: this,
+        octokitOptions: otherOptions
       }, options.auth)); // @ts-ignore  ¯\_(ツ)_/¯
 
       hook.wrap("request", auth.hook);
@@ -5695,6 +5899,12 @@ function convertBody(buffer, headers) {
 	// html4
 	if (!res && str) {
 		res = /<meta[\s]+?http-equiv=(['"])content-type\1[\s]+?content=(['"])(.+?)\2/i.exec(str);
+		if (!res) {
+			res = /<meta[\s]+?content=(['"])(.+?)\1[\s]+?http-equiv=(['"])content-type\3/i.exec(str);
+			if (res) {
+				res.pop(); // drop last quote
+			}
+		}
 
 		if (res) {
 			res = /charset=(.*)/i.exec(res.pop());
@@ -6702,7 +6912,7 @@ function fetch(url, opts) {
 				// HTTP fetch step 5.5
 				switch (request.redirect) {
 					case 'error':
-						reject(new FetchError(`redirect mode is set to error: ${request.url}`, 'no-redirect'));
+						reject(new FetchError(`uri requested responds with a redirect, redirect mode is set to error: ${request.url}`, 'no-redirect'));
 						finalize();
 						return;
 					case 'manual':
@@ -6741,7 +6951,8 @@ function fetch(url, opts) {
 							method: request.method,
 							body: request.body,
 							signal: request.signal,
-							timeout: request.timeout
+							timeout: request.timeout,
+							size: request.size
 						};
 
 						// HTTP-redirect fetch step 9
@@ -6960,6 +7171,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const command_1 = __webpack_require__(431);
+const file_command_1 = __webpack_require__(102);
+const utils_1 = __webpack_require__(82);
 const os = __importStar(__webpack_require__(87));
 const path = __importStar(__webpack_require__(622));
 /**
@@ -6986,9 +7199,17 @@ var ExitCode;
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function exportVariable(name, val) {
-    const convertedVal = command_1.toCommandValue(val);
+    const convertedVal = utils_1.toCommandValue(val);
     process.env[name] = convertedVal;
-    command_1.issueCommand('set-env', { name }, convertedVal);
+    const filePath = process.env['GITHUB_ENV'] || '';
+    if (filePath) {
+        const delimiter = '_GitHubActionsFileCommandDelimeter_';
+        const commandValue = `${name}<<${delimiter}${os.EOL}${convertedVal}${os.EOL}${delimiter}`;
+        file_command_1.issueCommand('ENV', commandValue);
+    }
+    else {
+        command_1.issueCommand('set-env', { name }, convertedVal);
+    }
 }
 exports.exportVariable = exportVariable;
 /**
@@ -7004,7 +7225,13 @@ exports.setSecret = setSecret;
  * @param inputPath
  */
 function addPath(inputPath) {
-    command_1.issueCommand('add-path', {}, inputPath);
+    const filePath = process.env['GITHUB_PATH'] || '';
+    if (filePath) {
+        file_command_1.issueCommand('PATH', inputPath);
+    }
+    else {
+        command_1.issueCommand('add-path', {}, inputPath);
+    }
     process.env['PATH'] = `${inputPath}${path.delimiter}${process.env['PATH']}`;
 }
 exports.addPath = addPath;
@@ -8421,7 +8648,7 @@ function _objectSpread2(target) {
   return target;
 }
 
-const VERSION = "3.3.0";
+const VERSION = "3.4.1";
 
 const noop = () => Promise.resolve(); // @ts-ignore
 
@@ -8481,19 +8708,19 @@ async function doRequest(state, request, options) {
   return req;
 }
 
-var triggersNotificationPaths = ["/orgs/:org/invitations", "/orgs/:org/teams/:team_slug/discussions", "/orgs/:org/teams/:team_slug/discussions/:discussion_number/comments", "/repos/:owner/:repo/collaborators/:username", "/repos/:owner/:repo/commits/:commit_sha/comments", "/repos/:owner/:repo/issues", "/repos/:owner/:repo/issues/:issue_number/comments", "/repos/:owner/:repo/pulls", "/repos/:owner/:repo/pulls/:pull_number/comments", "/repos/:owner/:repo/pulls/:pull_number/comments/:comment_id/replies", "/repos/:owner/:repo/pulls/:pull_number/merge", "/repos/:owner/:repo/pulls/:pull_number/requested_reviewers", "/repos/:owner/:repo/pulls/:pull_number/reviews", "/repos/:owner/:repo/releases", "/teams/:team_id/discussions", "/teams/:team_id/discussions/:discussion_number/comments"];
+var triggersNotificationPaths = ["/orgs/{org}/invitations", "/orgs/{org}/invitations/{invitation_id}", "/orgs/{org}/teams/{team_slug}/discussions", "/orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments", "/repos/{owner}/{repo}/collaborators/{username}", "/repos/{owner}/{repo}/commits/{commit_sha}/comments", "/repos/{owner}/{repo}/issues", "/repos/{owner}/{repo}/issues/{issue_number}/comments", "/repos/{owner}/{repo}/pulls", "/repos/{owner}/{repo}/pulls/{pull_number}/comments", "/repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies", "/repos/{owner}/{repo}/pulls/{pull_number}/merge", "/repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers", "/repos/{owner}/{repo}/pulls/{pull_number}/reviews", "/repos/{owner}/{repo}/releases", "/teams/{team_id}/discussions", "/teams/{team_id}/discussions/{discussion_number}/comments"];
 
 // @ts-ignore
 function routeMatcher(paths) {
   // EXAMPLE. For the following paths:
 
   /* [
-      "/orgs/:org/invitations",
-      "/repos/:owner/:repo/collaborators/:username"
+      "/orgs/{org}/invitations",
+      "/repos/{owner}/{repo}/collaborators/{username}"
   ] */
   // @ts-ignore
   const regexes = paths.map(path => path.split("/") // @ts-ignore
-  .map(c => c.startsWith(":") ? "(?:.+?)" : c).join("/")); // 'regexes' would contain:
+  .map(c => c.startsWith("{") ? "(?:.+?)" : c).join("/")); // 'regexes' would contain:
 
   /* [
       '/orgs/(?:.+?)/invitations',
@@ -8600,9 +8827,9 @@ function throttling(octokit, octokitOptions = {}) {
 
   state.retryLimiter.on("failed", async function (error, info) {
     const options = info.args[info.args.length - 1];
-    const isGraphQL = options.url.startsWith("/graphql");
+    const shouldRetryGraphQL = options.url.startsWith("/graphql") && error.status !== 401;
 
-    if (!(isGraphQL || error.status === 403)) {
+    if (!(shouldRetryGraphQL || error.status === 403)) {
       return;
     }
 
@@ -8613,8 +8840,8 @@ function throttling(octokit, octokitOptions = {}) {
       retryAfter
     } = await async function () {
       if (/\babuse\b/i.test(error.message)) {
-        // The user has hit the abuse rate limit. (REST only)
-        // https://developer.github.com/v3/#abuse-rate-limits
+        // The user has hit the abuse rate limit. (REST and GraphQL)
+        // https://docs.github.com/en/rest/overview/resources-in-the-rest-api#abuse-rate-limits
         // The Retry-After header can sometimes be blank when hitting an abuse limit,
         // but is always present after 2-3s, so make sure to set `retryAfter` to at least 5s by default.
         const retryAfter = Math.max(~~error.headers["retry-after"], state.minimumAbuseRetryAfter);
@@ -8627,7 +8854,8 @@ function throttling(octokit, octokitOptions = {}) {
 
       if (error.headers != null && error.headers["x-ratelimit-remaining"] === "0") {
         // The user has used all their allowed calls for the current time period (REST and GraphQL)
-        // https://developer.github.com/v3/#rate-limiting
+        // https://docs.github.com/en/rest/reference/rate-limit (REST)
+        // https://docs.github.com/en/graphql/overview/resource-limitations#rate-limit (GraphQL)
         const rateLimitReset = new Date(~~error.headers["x-ratelimit-reset"] * 1000).getTime();
         const retryAfter = Math.max(Math.ceil((rateLimitReset - Date.now()) / 1000), 0);
         const wantRetry = await emitter.trigger("rate-limit", retryAfter, options, octokit);
@@ -8836,6 +9064,52 @@ function isPlainObject(o) {
 }
 
 module.exports = isPlainObject;
+
+
+/***/ }),
+
+/***/ 701:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+/*!
+ * is-plain-object <https://github.com/jonschlinkert/is-plain-object>
+ *
+ * Copyright (c) 2014-2017, Jon Schlinkert.
+ * Released under the MIT License.
+ */
+
+function isObject(o) {
+  return Object.prototype.toString.call(o) === '[object Object]';
+}
+
+function isPlainObject(o) {
+  var ctor,prot;
+
+  if (isObject(o) === false) return false;
+
+  // If has modified constructor
+  ctor = o.constructor;
+  if (ctor === undefined) return true;
+
+  // If has modified prototype
+  prot = ctor.prototype;
+  if (isObject(prot) === false) return false;
+
+  // If constructor does not have an Object-specific method
+  if (prot.hasOwnProperty('isPrototypeOf') === false) {
+    return false;
+  }
+
+  // Most likely a plain Object
+  return true;
+}
+
+exports.isPlainObject = isPlainObject;
 
 
 /***/ }),
@@ -9328,6 +9602,13 @@ module.exports = isPlainObject;
 
 /***/ }),
 
+/***/ 747:
+/***/ (function(module) {
+
+module.exports = require("fs");
+
+/***/ }),
+
 /***/ 753:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -9340,18 +9621,18 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 
 var endpoint = __webpack_require__(385);
 var universalUserAgent = __webpack_require__(796);
-var isPlainObject = _interopDefault(__webpack_require__(696));
+var isPlainObject = __webpack_require__(701);
 var nodeFetch = _interopDefault(__webpack_require__(454));
 var requestError = __webpack_require__(463);
 
-const VERSION = "5.4.6";
+const VERSION = "5.4.12";
 
 function getBufferResponse(response) {
   return response.arrayBuffer();
 }
 
 function fetchWrapper(requestOptions) {
-  if (isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body)) {
+  if (isPlainObject.isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body)) {
     requestOptions.body = JSON.stringify(requestOptions.body);
   }
 
@@ -9533,7 +9814,7 @@ async function wrapRequest(state, request, options) {
   return limiter.schedule(request, options);
 }
 
-const VERSION = "3.0.3";
+const VERSION = "3.0.7";
 function retry(octokit, octokitOptions = {}) {
   const state = Object.assign({
     enabled: true,
@@ -9581,11 +9862,11 @@ module.exports = getAppStats;
 
 const Octokit = __webpack_require__(414);
 
-async function getAppStats({ id, privateKey }) {
+async function getAppStats({ appId, privateKey }) {
   try {
     const octokit = new Octokit({
       auth: {
-        id,
+        appId,
         privateKey,
       },
     });
@@ -9619,26 +9900,31 @@ async function getAppStats({ id, privateKey }) {
 
       const installationOctokit = new Octokit({
         auth: {
-          id,
+          appId,
           privateKey,
           installationId: installation.id,
         },
       });
 
-      const repositories = await installationOctokit.paginate(
-        "GET /installation/repositories",
-        {
-          mediaType: { previews: ["machine-man"] },
-          per_page: 100,
-        },
-        (response) =>
-          response.data.map((repository) => {
-            return {
-              private: repository.private,
-              stars: repository.stargazers_count,
-            };
-          })
-      );
+      const repositories = await installationOctokit
+        .paginate(
+          "GET /installation/repositories",
+          {
+            mediaType: { previews: ["machine-man"] },
+            per_page: 100,
+          },
+          (response) =>
+            response.data.map((repository) => {
+              return {
+                private: repository.private,
+                stars: repository.stargazers_count,
+              };
+            })
+        )
+        .catch((error) => {
+          console.error(error);
+          return [];
+        });
 
       const stars = repositories
         .filter((repository) => !repository.private)
@@ -10028,13 +10314,16 @@ Object.defineProperty(exports, '__esModule', { value: true });
 var request = __webpack_require__(753);
 var universalUserAgent = __webpack_require__(796);
 
-const VERSION = "4.5.2";
+const VERSION = "4.5.9";
 
 class GraphqlError extends Error {
   constructor(request, response) {
     const message = response.data.errors[0].message;
     super(message);
     Object.assign(this, response.data);
+    Object.assign(this, {
+      headers: response.headers
+    });
     this.name = "GraphqlError";
     this.request = request; // Maintains proper stack trace (only available on V8)
 
@@ -10048,13 +10337,18 @@ class GraphqlError extends Error {
 }
 
 const NON_VARIABLE_OPTIONS = ["method", "baseUrl", "url", "headers", "request", "query", "mediaType"];
+const GHES_V3_SUFFIX_REGEX = /\/api\/v3\/?$/;
 function graphql(request, query, options) {
-  options = typeof query === "string" ? options = Object.assign({
+  if (typeof query === "string" && options && "query" in options) {
+    return Promise.reject(new Error(`[@octokit/graphql] "query" cannot be used as variable name`));
+  }
+
+  const parsedOptions = typeof query === "string" ? Object.assign({
     query
-  }, options) : options = query;
-  const requestOptions = Object.keys(options).reduce((result, key) => {
+  }, options) : query;
+  const requestOptions = Object.keys(parsedOptions).reduce((result, key) => {
     if (NON_VARIABLE_OPTIONS.includes(key)) {
-      result[key] = options[key];
+      result[key] = parsedOptions[key];
       return result;
     }
 
@@ -10062,12 +10356,27 @@ function graphql(request, query, options) {
       result.variables = {};
     }
 
-    result.variables[key] = options[key];
+    result.variables[key] = parsedOptions[key];
     return result;
-  }, {});
+  }, {}); // workaround for GitHub Enterprise baseUrl set with /api/v3 suffix
+  // https://github.com/octokit/auth-app.js/issues/111#issuecomment-657610451
+
+  const baseUrl = parsedOptions.baseUrl || request.endpoint.DEFAULTS.baseUrl;
+
+  if (GHES_V3_SUFFIX_REGEX.test(baseUrl)) {
+    requestOptions.url = baseUrl.replace(GHES_V3_SUFFIX_REGEX, "/api/graphql");
+  }
+
   return request(requestOptions).then(response => {
     if (response.data.errors) {
+      const headers = {};
+
+      for (const key of Object.keys(response.headers)) {
+        headers[key] = response.headers[key];
+      }
+
       throw new GraphqlError(requestOptions, {
+        headers,
         data: response.data
       });
     }
